@@ -1,0 +1,35 @@
+name: Assessment Start Automation
+
+on:
+  push:
+    paths:
+      - '.assessment-request'
+
+jobs:
+  process-start-request:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          
+      - name: Check if assessment already started
+        id: check-start
+        run: |
+          if git tag | grep -q "assessment-start"; then
+            echo "::set-output name=started::true"
+          else
+            echo "::set-output name=started::false"
+          fi
+
+      - name: Process start request
+        if: steps.check-start.outputs.started == 'false'
+        env:
+          TASK_KEY: ${{ secrets.TASK_KEY }}
+        run: |
+          echo "$TASK_KEY" > .task-key
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .task-key
+          git commit -m "Automated assessment start"
+          git push
